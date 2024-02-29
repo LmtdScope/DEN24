@@ -26,13 +26,15 @@ pragma solidity ^0.8.19;
 import {VRFCoordinatorV2Interface} from "lib/chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {VRFConsumerBaseV2} from "lib/chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 import {AutomationCompatibleInterface} from "lib/chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import {ConfirmedOwner} from "lib/chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {LinkTokenInterface} from "lib/chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 
 /**@title ClosestGuess
  * @author limited scope
  * @notice This contract is for creating a guessing game that awards the nearest guess
  * @dev This implements the Chainlink VRF Version 2
  */
-contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
+contract ClosestGuess is VRFConsumerBaseV2, AutomationCompatibleInterface {
     /* Errors */
     error Raffle__UpkeepNotNeeded(
         uint256 currentBalance,
@@ -80,6 +82,7 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
     }
     mapping(uint256 => RequestStatus)
         public s_requests; /* requestId --> requestStatus */
+    VRFCoordinatorV2Interface COORDINATOR;
 
     // past requests Id.
     uint256[] public requestIds;
@@ -147,7 +150,7 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
         bool hasPlayers = s_players.length > 0;
         bool hasBalance = address(this).balance > 0;
         upkeepNeeded = (timePassed && isOpen && hasBalance && hasPlayers);
-        return (upkeepNeeded, "0x0"); // can we comment this out?
+        return (upkeepNeeded, "0x0");
     }
 
     /**
@@ -156,7 +159,6 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
      */
     function performUpkeep(bytes calldata /* performData */) external override {
         (bool upkeepNeeded, ) = checkUpkeep("");
-        // require(upkeepNeeded, "Upkeep not needed");
         if (!upkeepNeeded) {
             revert Raffle__UpkeepNotNeeded(
                 address(this).balance,
@@ -172,7 +174,6 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
             i_callbackGasLimit,
             NUM_WORDS
         );
-        // Quiz... is this redundant?
         emit RequestedRaffleWinner(requestId);
     }
 
